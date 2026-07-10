@@ -1,17 +1,25 @@
 const express = require('express');
 const router = express.Router();
-const parkingController = require('../controllers/parkingController');
+const ctrl = require('../controllers/parkingController');
 
-// Retrieve availability metrics for all vehicle slots
-router.get('/slots', parkingController.getSlots);
+// Slot availability stats (for dashboard cards)
+router.get('/slots', ctrl.getSlots);
 
-// Park a new vehicle and generate a ticket
-router.post('/park', parkingController.parkVehicle);
+// Slot CRUD (for slot manager page)
+router.get('/slots/list', ctrl.getAllSlots);
+router.post('/slots', ctrl.createSlot);
+router.delete('/slots/:id', ctrl.deleteSlot);
 
-// Process the exit of a parked vehicle and calculate fare
-router.post('/exit', parkingController.exitVehicle);
+// Vehicle parking and exit
+router.post('/park', ctrl.parkVehicle);
+router.post('/exit', ctrl.exitVehicle);
 
-// Retrieve all currently parked vehicles
-router.get('/parked', parkingController.getParkedVehicles);
+// Currently parked list
+router.get('/parked', ctrl.getParkedVehicles);
+
+// Parking history logs + delete
+router.get('/history', ctrl.getHistory);
+router.delete('/tickets/:id', ctrl.deleteTicket);
 
 module.exports = router;
+

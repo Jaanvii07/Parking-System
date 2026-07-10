@@ -1,19 +1,15 @@
-/**
- * Generates the next sequential ticket ID.
- * Example format: TKT-1001, TKT-1002, etc.
- * @param {Object} db - The database connection or pool.
- * @returns {Promise<string>} The generated ticket ID.
- */
+// Helper to generate sequential ticket IDs (e.g. TKT-1001, TKT-1002, etc)
 async function generateTicketId(db) {
+  // Query to find the max ID in the tickets table
   const [rows] = await db.query('SELECT MAX(id) as maxId FROM tickets');
   const maxId = rows[0].maxId || 0;
-  const nextId = maxId + 1;
   
-  // Start from TKT-1001
-  const ticketNumber = 1000 + nextId;
+  // Start numbers from 1001
+  const ticketNumber = 1000 + maxId + 1;
   return `TKT-${ticketNumber}`;
 }
 
 module.exports = {
-  generateTicketId,
+  generateTicketId
 };
+

@@ -9,38 +9,35 @@ const errorHandler = require('./middlewares/errorHandler');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Enable CORS for frontend integration
+// Allow requests from the frontend dev server
 app.use(cors());
-
-// Parse incoming JSON requests
 app.use(express.json());
 
-// Routes
+// All our API routes start with /api
 app.use('/api', parkingRoutes);
 
-// Catch 404 routes and forward to error handler
+// Catch any undefined routes
 app.use((req, res, next) => {
-  const error = new Error(`Not Found - ${req.originalUrl}`);
-  error.statusCode = 404;
-  next(error);
+  const err = new Error(`Route not found: ${req.originalUrl}`);
+  err.statusCode = 404;
+  next(err);
 });
 
-// Centralized error handler
+// Global error handler
 app.use(errorHandler);
 
-// Initialize DB and start server
+// Connect to DB then start server
 async function startServer() {
   try {
-    // Run migrations/initialization
     await initializeDatabase();
-    
     app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
+      console.log(`Server running on http://localhost:${PORT}`);
     });
-  } catch (error) {
-    console.error('Failed to start server due to database initialization failure:', error);
+  } catch (err) {
+    console.error('Failed to start server:', err);
     process.exit(1);
   }
 }
 
 startServer();
+

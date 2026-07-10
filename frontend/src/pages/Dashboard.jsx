@@ -4,73 +4,119 @@ import AvailabilityCards from '../components/AvailabilityCards';
 import ParkVehicleForm from '../components/ParkVehicleForm';
 import ExitVehicleForm from '../components/ExitVehicleForm';
 import ParkedVehiclesTable from '../components/ParkedVehiclesTable';
-import { getSlots, getParkedVehicles } from '../services/api';
+import SlotGrid from '../components/SlotGrid';
+import SlotManager from './SlotManager';
+import HistoryLogs from './HistoryLogs';
+import { getSlots, getParkedVehicles, getAllSlots } from '../services/api';
 
-/**
- * Main dashboard page orchestrating state management and child components.
- */
 function Dashboard() {
+  const [activePage, setActivePage] = useState('dashboard');
   const [slots, setSlots] = useState({
     bike: { total: 5, available: 5 },
     car: { total: 5, available: 5 },
-    truck: { total: 2, available: 2 },
+    truck: { total: 2, available: 2 }
   });
-  const [vehicles, setVehicles] = useState([]);
+  const [allSlots, setAllSlots] = useState([]);
+  const [parked, setParked] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [connError, setConnError] = useState('');
 
-  // Function to load slots and parked vehicles list concurrently
-  const loadDashboardData = async (showLoader = false) => {
+  // fetch all dashboard data from the API
+  const loadData = async (showLoader = false) => {
     if (showLoader) setLoading(true);
     try {
-      const [slotsData, vehiclesData] = await Promise.all([
+      const [slotsData, parkedData, allSlotsData] = await Promise.all([
         getSlots(),
-        getParkedVehicles()
+        getParkedVehicles(),
+        getAllSlots()
       ]);
       setSlots(slotsData);
-      setVehicles(vehiclesData);
-      setError(null);
+      setParked(parkedData);
+      setAllSlots(allSlotsData);
+      setConnError('');
     } catch (err) {
-      console.error('Failed to load dashboard data:', err);
-      setError('Connection to backend failed. Please check if server is running.');
+      console.error('Error loading dashboard data:', err);
+      setConnError('Cannot connect to server. Is the backend running on port 5000?');
     } finally {
       setLoading(false);
     }
   };
 
-  // Run on mount
+  // load on first render
   useEffect(() => {
-    loadDashboardData(true);
+    loadData(true);
   }, []);
 
-  // Callback to refresh dashboard data after park/exit actions
-  const handleActionSuccess = () => {
-    loadDashboardData(false); // Silent reload without full blocking spinner
+  // reload whenever user switches back to the dashboard tab
+  useEffect(() => {
+    if (activePage === 'dashboard') {
+      loadData(false);
+    }
+  }, [activePage]);
+
+  const handleSuccess = () => {
+    loadData(false);
   };
 
+  // page header info per tab
+  const pageInfo = {
+    dashboard: { title: 'Dashboard', sub: 'Live overview of parking slot availability and activity' },
+    slots: { title: 'Slot Manager', sub: 'Add or remove parking slots from the system' },
+    history: { title: 'Parking Logs', sub: 'Full history of all parking sessions' }
+  };
+
+  const current = pageInfo[activePage];
+
   return (
-    <div className="dashboard-container" id="dashboard-wrapper">
-      {/* Global connection error warning banner */}
-      {error && (
-        <div className="alert alert-error" style={{ marginBottom: 0 }}>
-          ⚠️ {error}
+    <div className="app-shell">
+      <Navbar activePage={activePage} onPageChange={setActivePage} slots={slots} />
+
+      <div className="main-content" id="main-content">
+        {/* Connection error strip */}
+        {connError && (
+          <div className="connection-error" id="conn-error-banner">
+            ⚠️ {connError}
+          </div>
+        )}
+
+        {/* Top page header */}
+        <div className="page-header" id="page-header">
+          <div>
+            <div className="page-header-title">{current.title}</div>
+            <div className="page-header-sub">{current.sub}</div>
+          </div>
         </div>
-      )}
 
-      {/* Top Navigation */}
-      <Navbar slots={slots} />
+        {/* Page content */}
+        <div className="page-body" id="page-body">
+          {activePage === 'dashboard' && (
+            <>
+              {/* Stat cards */}
+              <AvailabilityCards slots={slots} />
 
-      {/* Availability Cards */}
-      <AvailabilityCards slots={slots} />
+              {/* Interactive slot grid */}
+              <SlotGrid slots={allSlots} />
 
-      {/* Panel of Actions */}
-      <div className="action-grid">
-        <ParkVehicleForm onSuccess={handleActionSuccess} />
-        <ExitVehicleForm onSuccess={handleActionSuccess} />
+              {/* Park + Exit forms side by side */}
+              <div className="action-grid" id="action-grid">
+                <ParkVehicleForm onSuccess={handleSuccess} />
+                <ExitVehicleForm onSuccess={handleSuccess} />
+              </div>
+
+              {/* Parked vehicles list */}
+              <ParkedVehiclesTable
+                vehicles={parked}
+                loading={loading}
+                onRefresh={handleSuccess}
+              />
+            </>
+          )}
+
+          {activePage === 'slots' && <SlotManager />}
+
+          {activePage === 'history' && <HistoryLogs />}
+        </div>
       </div>
-
-      {/* Currently Parked List */}
-      <ParkedVehiclesTable vehicles={vehicles} loading={loading} />
     </div>
   );
 }

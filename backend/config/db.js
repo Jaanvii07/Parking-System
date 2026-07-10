@@ -8,24 +8,24 @@ const dbConfig = {
 };
 
 const dbName = process.env.DB_NAME || 'parking_lot';
+
 let pool;
 
-// Set up database and tables on startup
 async function initializeDatabase() {
   let connection;
   try {
-    // Connect to MySQL server first (without database name) to check if it exists
+    // 1. Connect without database to ensure it exists
     connection = await mysql.createConnection(dbConfig);
-    console.log('Successfully connected to MySQL database server.');
+    console.log('Connected to MySQL server for initialization...');
 
-    // Create database if not already created
+    // 2. Create database if not exists
     await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``);
-    console.log(`Database "${dbName}" checked/created.`);
+    console.log(`Database "${dbName}" verified/created.`);
 
-    // Select the database
+    // 3. Connect to the specific database
     await connection.query(`USE \`${dbName}\``);
 
-    // Create slots table if it doesn't exist
+    // 4. Create slots table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS slots (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -34,9 +34,9 @@ async function initializeDatabase() {
         is_occupied BOOLEAN DEFAULT FALSE
       )
     `);
-    console.log('Checked slots table structure.');
+    console.log('Slots table verified/created.');
 
-    // Create tickets table if it doesn't exist
+    // 5. Create tickets table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS tickets (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -51,43 +51,43 @@ async function initializeDatabase() {
         FOREIGN KEY (slot_number) REFERENCES slots(slot_number) ON DELETE SET NULL
       )
     `);
-    console.log('Checked tickets table structure.');
+    console.log('Tickets table verified/created.');
 
-    // If slots table is empty, seed initial slots for testing
+    // 6. Seed slots if empty
     const [rows] = await connection.query('SELECT COUNT(*) as count FROM slots');
     if (rows[0].count === 0) {
-      console.log('Seeding initial parking slots data...');
-      const seedSlots = [
-        // 5 Bike slots
+      console.log('Seeding slots table...');
+      const seedQueries = [
+        // Bikes
         ['bike', 'B-1', false],
         ['bike', 'B-2', false],
         ['bike', 'B-3', false],
         ['bike', 'B-4', false],
         ['bike', 'B-5', false],
-        // 5 Car slots
+        // Cars
         ['car', 'C-1', false],
         ['car', 'C-2', false],
         ['car', 'C-3', false],
         ['car', 'C-4', false],
         ['car', 'C-5', false],
-        // 2 Truck slots
+        // Trucks
         ['truck', 'T-1', false],
         ['truck', 'T-2', false]
       ];
 
-      for (const [type, number, isOccupied] of seedSlots) {
+      for (const [type, number, is_occupied] of seedQueries) {
         await connection.query(
           'INSERT INTO slots (slot_type, slot_number, is_occupied) VALUES (?, ?, ?)',
-          [type, number, isOccupied]
+          [type, number, is_occupied]
         );
       }
-      console.log('Initial slots seeded successfully!');
+      console.log('Slots table seeded successfully.');
     } else {
-      console.log('Parking slots already populated.');
+      console.log('Slots table already populated.');
     }
 
   } catch (error) {
-    console.error('Error initializing database:', error);
+    console.error('Error during database initialization:', error);
     throw error;
   } finally {
     if (connection) {
@@ -95,7 +95,7 @@ async function initializeDatabase() {
     }
   }
 
-  // Create connection pool for the main app runtime
+  // Create the standard runtime connection pool
   pool = mysql.createPool({
     ...dbConfig,
     database: dbName,
@@ -112,9 +112,8 @@ module.exports = {
   initializeDatabase,
   getPool: () => {
     if (!pool) {
-      throw new Error('Database pool not initialized. Run initializeDatabase first.');
+      throw new Error('Database pool not initialized. Call initializeDatabase first.');
     }
     return pool;
   }
 };
-

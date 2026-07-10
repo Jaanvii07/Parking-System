@@ -1,46 +1,50 @@
-// Helper function to calculate duration and parking charge based on entry and exit time
-// Charges rules:
-// - 1 to 3 Hours: Rs. 30
-// - 4 to 6 Hours: Rs. 85
-// - 7+ Hours: Rs. 120
-// Note: Duration is rounded UP to the nearest hour (e.g. 1.2 hours = 2 hours)
+/**
+ * Calculates the parking duration and fare based on entry and exit times.
+ * Pricing Tiers:
+ * - 1-3 Hours: ₹30
+ * - 4-6 Hours: ₹85
+ * - 7+ Hours:  ₹120
+ * 
+ * Duration is rounded UP to the next integer hour.
+ * 
+ * @param {Date|string} entryTime - The entry timestamp.
+ * @param {Date|string} exitTime - The exit timestamp.
+ * @returns {Object} An object containing durationHours and amount.
+ */
 function calculateFare(entryTime, exitTime) {
-  const entryDate = new Date(entryTime);
-  const exitDate = new Date(exitTime);
+  const entry = new Date(entryTime);
+  const exit = new Date(exitTime);
 
-  // Validate dates
-  if (isNaN(entryDate.getTime()) || isNaN(exitDate.getTime())) {
-    throw new Error('Invalid dates provided for fare calculation');
+  if (isNaN(entry.getTime()) || isNaN(exit.getTime())) {
+    throw new Error('Invalid entry or exit timestamp.');
   }
 
-  const timeDiffMs = exitDate.getTime() - entryDate.getTime();
-  if (timeDiffMs < 0) {
-    throw new Error('Exit time cannot be before entry time!');
+  const diffMs = exit.getTime() - entry.getTime();
+  if (diffMs < 0) {
+    throw new Error('Exit time cannot be before entry time.');
   }
 
   // Convert milliseconds to hours
-  const hours = timeDiffMs / (1000 * 60 * 60);
+  const diffHours = diffMs / (1000 * 60 * 60);
   
-  // Round up to next hour (min 1 hour)
-  const durationHours = Math.max(1, Math.ceil(hours));
+  // Round up duration. If it's 0 (exact same instant), charge minimum 1 hour.
+  const durationHours = Math.max(1, Math.ceil(diffHours));
 
-  // Determine amount based on slabs
   let amount = 0;
-  if (durationHours <= 3) {
+  if (durationHours >= 1 && durationHours <= 3) {
     amount = 30;
-  } else if (durationHours <= 6) {
+  } else if (durationHours >= 4 && durationHours <= 6) {
     amount = 85;
-  } else {
+  } else if (durationHours >= 7) {
     amount = 120;
   }
 
   return {
     durationHours,
-    amount
+    amount,
   };
 }
 
 module.exports = {
-  calculateFare
+  calculateFare,
 };
-

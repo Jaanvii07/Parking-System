@@ -1,63 +1,54 @@
 import axios from 'axios';
 
+// Base API configuration
 const API = axios.create({
   baseURL: '/api',
-  headers: { 'Content-Type': 'application/json' }
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-// Slot availability stats (used in dashboard cards)
+/**
+ * Get available and total slot counts for all vehicle types.
+ */
 export const getSlots = async () => {
-  const res = await API.get('/slots');
-  return res.data;
+  const response = await API.get('/slots');
+  return response.data;
 };
 
-// Full list of all physical slots (for slot manager)
-export const getAllSlots = async () => {
-  const res = await API.get('/slots/list');
-  return res.data;
-};
-
-export const createSlot = async (slotType, slotNumber) => {
-  const res = await API.post('/slots', { slot_type: slotType, slot_number: slotNumber });
-  return res.data;
-};
-
-export const deleteSlot = async (id) => {
-  const res = await API.delete(`/slots/${id}`);
-  return res.data;
-};
-
-// Park a vehicle
+/**
+ * Park a vehicle.
+ * @param {string} vehicleNumber 
+ * @param {string} vehicleType 
+ */
 export const parkVehicle = async (vehicleNumber, vehicleType) => {
-  const res = await API.post('/park', { vehicleNumber, vehicleType });
-  return res.data;
+  const response = await API.post('/park', { vehicleNumber, vehicleType });
+  return response.data;
 };
 
-// Exit by ticket ID or vehicle number
+/**
+ * Exit a vehicle by Ticket ID or Vehicle Number.
+ * @param {string} identifier - Can be ticketId (e.g., TKT-1001) or vehicleNumber (e.g., KA01AB1234)
+ */
 export const exitVehicle = async (identifier) => {
-  const clean = identifier.trim();
-  const payload = /^TKT-\d+/i.test(clean)
-    ? { ticketId: clean }
-    : { vehicleNumber: clean };
+  const cleanId = identifier.trim();
+  const payload = {};
+  
+  // Intelligently check if it looks like a ticket ID (starts with TKT-) or vehicle number
+  if (/^TKT-\d+/i.test(cleanId)) {
+    payload.ticketId = cleanId;
+  } else {
+    payload.vehicleNumber = cleanId;
+  }
 
-  const res = await API.post('/exit', payload);
-  return res.data;
+  const response = await API.post('/exit', payload);
+  return response.data;
 };
 
-// Currently parked list
+/**
+ * Get all currently parked vehicles.
+ */
 export const getParkedVehicles = async () => {
-  const res = await API.get('/parked');
-  return res.data;
+  const response = await API.get('/parked');
+  return response.data;
 };
-
-// Full ticket history (parked + exited)
-export const getHistory = async () => {
-  const res = await API.get('/history');
-  return res.data;
-};
-
-export const deleteTicket = async (id) => {
-  const res = await API.delete(`/tickets/${id}`);
-  return res.data;
-};
-
